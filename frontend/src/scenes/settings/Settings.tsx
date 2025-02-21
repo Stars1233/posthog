@@ -1,8 +1,10 @@
 import './Settings.scss'
 
+import { IconExternal } from '@posthog/icons'
 import { LemonBanner, LemonButton, LemonButtonProps, LemonDivider } from '@posthog/lemon-ui'
 import clsx from 'clsx'
 import { useActions, useValues } from 'kea'
+import { router } from 'kea-router'
 import { NotFound } from 'lib/components/NotFound'
 import { TimeSensitiveAuthenticationArea } from 'lib/components/TimeSensitiveAuthentication/TimeSensitiveAuthentication'
 import { useResizeBreakpoints } from 'lib/hooks/useResizeObserver'
@@ -23,13 +25,15 @@ export interface SettingOption {
 
 export function Settings({
     hideSections = false,
+    handleLocally = false,
     ...props
-}: SettingsLogicProps & { hideSections?: boolean }): JSX.Element {
+}: SettingsLogicProps & { hideSections?: boolean; handleLocally?: boolean }): JSX.Element {
     const {
         selectedSectionId,
         selectedSection,
         selectedLevel,
         selectedSettingId,
+        selectedSetting,
         sections,
         settings,
         isCompactNavigationOpen,
@@ -51,6 +55,7 @@ export function Settings({
     const isCompact = !inStorybookTestRunner() && size === 'small'
 
     const showOptions = isCompact ? isCompactNavigationOpen : true
+    const settingsInSidebar = props.sectionId && !!selectedSetting
 
     // Currently environment and project settings do not require periodic re-authentication,
     // though this is likely to change (see https://github.com/posthog/posthog/pull/22421).
@@ -60,16 +65,13 @@ export function Settings({
             ? TimeSensitiveAuthenticationArea
             : React.Fragment
 
-    const isSettingsScene = props.logicKey === 'settingsScene'
-
-    const options: SettingOption[] = props.sectionId
+    const options: SettingOption[] = settingsInSidebar
         ? settings.map((s) => ({
               key: s.id,
               content: (
                   <OptionButton
-                      to={urls.settings(selectedLevel, s.id)}
                       active={selectedSettingId === s.id}
-                      isSettingsScene={isSettingsScene}
+                      handleLocally={handleLocally}
                       onClick={() => selectSetting(s.id)}
                   >
                       {s.title}
@@ -81,11 +83,11 @@ export function Settings({
               content: (
                   <OptionButton
                       to={urls.settings(level)}
-                      isSettingsScene={isSettingsScene}
+                      handleLocally={handleLocally}
                       active={selectedLevel === level && !selectedSectionId}
                       onClick={() => selectLevel(level)}
                   >
-                      <span className="text-muted-alt">{capitalizeFirstLetter(level)}</span>
+                      <span className="text-secondary">{capitalizeFirstLetter(level)}</span>
                   </OptionButton>
               ),
               items: sections
@@ -94,16 +96,32 @@ export function Settings({
                       key: section.id,
                       content: (
                           <OptionButton
-                              to={urls.settings(section.id)}
-                              isSettingsScene={isSettingsScene}
+                              to={section.to ?? urls.settings(section.id)}
+                              handleLocally={handleLocally}
                               active={selectedSectionId === section.id}
-                              onClick={() => selectSection(section.id, level)}
+                              isLink={!!section.to}
+                              onClick={() => {
+                                  if (section.to) {
+                                      router.actions.push(section.to)
+                                  } else {
+                                      selectSection(section.id, level)
+                                  }
+                              }}
                           >
                               {section.title}
                           </OptionButton>
                       ),
                   })),
           }))
+
+    const compactNavigationContent: JSX.Element = settingsInSidebar ? (
+        <>{selectedSetting.title}</>
+    ) : (
+        <>
+            {capitalizeFirstLetter(selectedLevel)}
+            {selectedSection ? <>` / `{selectedSection.title}</> : null}
+        </>
+    )
 
     return (
         <div className={clsx('Settings flex', isCompact && 'Settings--compact')} ref={ref}>
@@ -115,8 +133,7 @@ export function Settings({
                         </div>
                     ) : (
                         <LemonButton fullWidth sideIcon={<IconChevronRight />} onClick={() => openCompactNavigation()}>
-                            {capitalizeFirstLetter(selectedLevel)}
-                            {selectedSection ? ` / ${selectedSection.title}` : null}
+                            {compactNavigationContent}
                         </LemonButton>
                     )}
                     {isCompact ? <LemonDivider /> : null}
@@ -137,40 +154,43 @@ export function Settings({
                         </LemonBanner>
                     )}
 
-                    <SettingsRenderer {...props} />
+                    <SettingsRenderer {...props} handleLocally={handleLocally} />
                 </div>
             </AuthenticationAreaComponent>
         </div>
     )
 }
 
-function SettingsRenderer(props: SettingsLogicProps): JSX.Element {
-    const { settings, selectedLevel, selectedSectionId } = useValues(settingsLogic(props))
+function SettingsRenderer(props: SettingsLogicProps & { handleLocally: boolean }): JSX.Element {
+    const { settings: allSettings, selectedLevel, selectedSectionId, selectedSetting } = useValues(settingsLogic(props))
     const { selectSetting } = useActions(settingsLogic(props))
+
+    const settingsInSidebar = !!selectedSetting && !!props.sectionId
+
+    const settings = settingsInSidebar ? [selectedSetting] : allSettings
 
     return (
         <div className="space-y-8">
             {settings.length ? (
                 settings.map((x) => (
                     <div key={x.id} className="relative">
-                        <h2 id={x.id} className="flex gap-2 items-center">
-                            {x.title}
-                            <LemonButton
-                                icon={<IconLink />}
-                                size="small"
-                                to={urls.settings(selectedSectionId ?? selectedLevel, x.id)}
-                                onClick={
-                                    // Outside of /settings, we want to select the level without navigating
-                                    props.logicKey === 'settingsScene'
-                                        ? (e) => {
-                                              selectSetting(x.id)
-                                              e.preventDefault()
-                                          }
-                                        : undefined
-                                }
-                            />
-                        </h2>
-                        {x.description && <p>{x.description}</p>}
+                        {!settingsInSidebar && (
+                            <h2 id={x.id} className="flex gap-2 items-center">
+                                {x.title}
+                                {props.logicKey === 'settingsScene' && (
+                                    <LemonButton
+                                        icon={<IconLink />}
+                                        size="small"
+                                        to={urls.settings(selectedSectionId ?? selectedLevel, x.id)}
+                                        onClick={(e) => {
+                                            selectSetting(x.id)
+                                            e.preventDefault()
+                                        }}
+                                    />
+                                )}
+                            </h2>
+                        )}
+                        {x.description && <p className="max-w-160">{x.description}</p>}
 
                         {x.component}
                     </div>
@@ -206,16 +226,18 @@ const OptionButton = ({
     active,
     onClick,
     children,
-    isSettingsScene,
+    handleLocally,
+    isLink = false,
 }: Pick<LemonButtonProps, 'to' | 'children' | 'active'> & {
-    isSettingsScene: boolean
+    handleLocally: boolean
     onClick: () => void
+    isLink?: boolean
 }): JSX.Element => {
     return (
         <LemonButton
             to={to}
             onClick={
-                isSettingsScene
+                handleLocally
                     ? (e) => {
                           onClick()
                           e.preventDefault()
@@ -223,6 +245,7 @@ const OptionButton = ({
                     : undefined
             }
             size="small"
+            sideIcon={isLink ? <IconExternal /> : undefined}
             fullWidth
             active={active}
         >

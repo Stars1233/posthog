@@ -273,13 +273,17 @@ function RetentionSummary({ query }: { query: RetentionQuery }): JSX.Element {
             {' performed'}
             <EntityDisplay
                 entity={
-                    {
-                        ...query.retentionFilter.targetEntity,
-                        kind:
-                            query.retentionFilter.targetEntity?.type === 'actions'
-                                ? NodeKind.ActionsNode
-                                : NodeKind.EventsNode,
-                    } as AnyEntityNode
+                    query.retentionFilter.targetEntity?.type === 'actions'
+                        ? {
+                              kind: NodeKind.ActionsNode,
+                              name: query.retentionFilter.targetEntity.name,
+                              id: query.retentionFilter.targetEntity.id as number,
+                          }
+                        : {
+                              kind: NodeKind.EventsNode,
+                              name: query.retentionFilter.targetEntity?.name,
+                              event: query.retentionFilter.targetEntity?.id as string,
+                          }
                 }
             />
             <strong>
@@ -308,10 +312,16 @@ function RetentionSummary({ query }: { query: RetentionQuery }): JSX.Element {
     )
 }
 
-export function SeriesSummary({ query, heading }: { query: InsightQueryNode; heading?: JSX.Element }): JSX.Element {
+export function SeriesSummary({
+    query,
+    heading,
+}: {
+    query: InsightQueryNode
+    heading?: JSX.Element | null
+}): JSX.Element {
     return (
         <section>
-            <h5>{heading || 'Query summary'}</h5>
+            {heading !== null && <h5>{heading || 'Query summary'}</h5>}
             <div className="InsightDetails__query">
                 {isTrendsQuery(query) && query.trendsFilter?.formula && (
                     <>
