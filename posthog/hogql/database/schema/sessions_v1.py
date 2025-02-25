@@ -38,40 +38,41 @@ if TYPE_CHECKING:
 DEFAULT_BOUNCE_RATE_DURATION_SECONDS = 10
 
 RAW_SESSIONS_FIELDS: dict[str, FieldOrTable] = {
-    "id": StringDatabaseField(name="session_id"),
+    "id": StringDatabaseField(name="session_id", nullable=False),
     # TODO remove this, it's a duplicate of the correct session_id field below to get some trends working on a deadline
-    "session_id": StringDatabaseField(name="session_id"),
-    "team_id": IntegerDatabaseField(name="team_id"),
-    "distinct_id": StringDatabaseField(name="distinct_id"),
-    "min_timestamp": DateTimeDatabaseField(name="min_timestamp"),
-    "max_timestamp": DateTimeDatabaseField(name="max_timestamp"),
-    "urls": StringArrayDatabaseField(name="urls"),
+    "session_id": StringDatabaseField(name="session_id", nullable=False),
+    "team_id": IntegerDatabaseField(name="team_id", nullable=False),
+    "distinct_id": StringDatabaseField(name="distinct_id", nullable=False),
+    "min_timestamp": DateTimeDatabaseField(name="min_timestamp", nullable=False),
+    "max_timestamp": DateTimeDatabaseField(name="max_timestamp", nullable=False),
+    "urls": StringArrayDatabaseField(name="urls", nullable=False),
     # many of the fields in the raw tables are AggregateFunction state, rather than simple types
-    "entry_url": DatabaseField(name="entry_url"),
-    "exit_url": DatabaseField(name="exit_url"),
-    "initial_utm_source": DatabaseField(name="initial_utm_source"),
-    "initial_utm_campaign": DatabaseField(name="initial_utm_campaign"),
-    "initial_utm_medium": DatabaseField(name="initial_utm_medium"),
-    "initial_utm_term": DatabaseField(name="initial_utm_term"),
-    "initial_utm_content": DatabaseField(name="initial_utm_content"),
-    "initial_referring_domain": DatabaseField(name="initial_referring_domain"),
-    "initial_gclid": DatabaseField(name="initial_gclid"),
-    "initial_gad_source": DatabaseField(name="initial_gad_source"),
-    "event_count_map": DatabaseField(name="event_count_map"),
-    "pageview_count": IntegerDatabaseField(name="pageview_count"),
-    "autocapture_count": IntegerDatabaseField(name="autocapture_count"),
+    "entry_url": DatabaseField(name="entry_url", nullable=False),
+    "exit_url": DatabaseField(name="exit_url", nullable=False),
+    "initial_utm_source": DatabaseField(name="initial_utm_source", nullable=False),
+    "initial_utm_campaign": DatabaseField(name="initial_utm_campaign", nullable=False),
+    "initial_utm_medium": DatabaseField(name="initial_utm_medium", nullable=False),
+    "initial_utm_term": DatabaseField(name="initial_utm_term", nullable=False),
+    "initial_utm_content": DatabaseField(name="initial_utm_content", nullable=False),
+    "initial_referring_domain": DatabaseField(name="initial_referring_domain", nullable=False),
+    "initial_gclid": DatabaseField(name="initial_gclid", nullable=False),
+    "initial_fbclid": DatabaseField(name="initial_fbclid", nullable=False),
+    "initial_gad_source": DatabaseField(name="initial_gad_source", nullable=False),
+    "event_count_map": DatabaseField(name="event_count_map", nullable=False),
+    "pageview_count": IntegerDatabaseField(name="pageview_count", nullable=False),
+    "autocapture_count": IntegerDatabaseField(name="autocapture_count", nullable=False),
 }
 
 LAZY_SESSIONS_FIELDS: dict[str, FieldOrTable] = {
-    "id": StringDatabaseField(name="session_id"),
+    "id": StringDatabaseField(name="session_id", nullable=False),
     # TODO remove this, it's a duplicate of the correct session_id field below to get some trends working on a deadline
-    "session_id": StringDatabaseField(name="session_id"),
-    "team_id": IntegerDatabaseField(name="team_id"),
-    "distinct_id": StringDatabaseField(name="distinct_id"),
-    "$start_timestamp": DateTimeDatabaseField(name="$start_timestamp"),
-    "$end_timestamp": DateTimeDatabaseField(name="$end_timestamp"),
-    "$urls": StringArrayDatabaseField(name="$urls"),
-    "$num_uniq_urls": IntegerDatabaseField(name="$num_uniq_urls"),
+    "session_id": StringDatabaseField(name="session_id", nullable=False),
+    "team_id": IntegerDatabaseField(name="team_id", nullable=False),
+    "distinct_id": StringDatabaseField(name="distinct_id", nullable=False),
+    "$start_timestamp": DateTimeDatabaseField(name="$start_timestamp", nullable=False),
+    "$end_timestamp": DateTimeDatabaseField(name="$end_timestamp", nullable=False),
+    "$urls": StringArrayDatabaseField(name="$urls", nullable=False),
+    "$num_uniq_urls": IntegerDatabaseField(name="$num_uniq_urls", nullable=False),
     "$entry_current_url": StringDatabaseField(name="$entry_current_url"),
     "$entry_pathname": StringDatabaseField(name="$entry_pathname"),
     "$entry_hostname": StringDatabaseField(name="$entry_host"),
@@ -85,6 +86,7 @@ LAZY_SESSIONS_FIELDS: dict[str, FieldOrTable] = {
     "$entry_utm_content": StringDatabaseField(name="$entry_utm_content"),
     "$entry_referring_domain": StringDatabaseField(name="$entry_referring_domain"),
     "$entry_gclid": StringDatabaseField(name="$entry_gclid"),
+    "$entry_fbclid": StringDatabaseField(name="$entry_fbclid"),
     "$entry_gad_source": StringDatabaseField(name="$entry_gad_source"),
     "$event_count_map": DatabaseField(name="$event_count_map"),
     "$pageview_count": IntegerDatabaseField(name="$pageview_count"),
@@ -122,6 +124,7 @@ class RawSessionsTableV1(Table):
             "initial_utm_content",
             "initial_referring_domain",
             "initial_gclid",
+            "initial_fbclid",
             "initial_gad_source",
         ]
 
@@ -177,6 +180,7 @@ def select_from_sessions_table_v1(
         "$entry_utm_content": null_if_empty(arg_min_merge_field("initial_utm_content")),
         "$entry_referring_domain": null_if_empty(arg_min_merge_field("initial_referring_domain")),
         "$entry_gclid": null_if_empty(arg_min_merge_field("initial_gclid")),
+        "$entry_fbclid": null_if_empty(arg_min_merge_field("initial_fbclid")),
         "$entry_gad_source": null_if_empty(arg_min_merge_field("initial_gad_source")),
         "$event_count_map": ast.Call(
             name="sumMap",
@@ -268,9 +272,17 @@ def select_from_sessions_table_v1(
             url=aggregate_fields["$entry_current_url"],
             hostname=aggregate_fields["$entry_hostname"],
             pathname=aggregate_fields["$entry_pathname"],
-            gclid=aggregate_fields["$entry_gclid"],
+            has_gclid=ast.Call(
+                name="isNotNull",
+                args=[aggregate_fields["$entry_gclid"]],
+            ),
+            has_fbclid=ast.Call(
+                name="isNotNull",
+                args=[aggregate_fields["$entry_fbclid"]],
+            ),
             gad_source=aggregate_fields["$entry_gad_source"],
         ),
+        timings=context.timings,
     )
 
     # aliases for people reverting from v2 to v1

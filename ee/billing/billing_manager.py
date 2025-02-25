@@ -11,10 +11,10 @@ from django.utils import timezone
 from sentry_sdk import capture_message
 from requests import JSONDecodeError  # type: ignore[attr-defined]
 from rest_framework.exceptions import NotAuthenticated
-from sentry_sdk import capture_exception
+from posthog.exceptions_capture import capture_exception
 
 from ee.billing.billing_types import BillingStatus
-from ee.billing.quota_limiting import set_org_usage_summary, sync_org_quota_limits
+from ee.billing.quota_limiting import set_org_usage_summary, update_org_billing_quotas
 from ee.models import License
 from ee.settings import BILLING_SERVICE_URL
 from posthog.cloud_utils import get_cached_instance_license
@@ -301,6 +301,7 @@ class BillingManager:
                 events=usage_summary["events"],
                 recordings=usage_summary["recordings"],
                 rows_synced=usage_summary.get("rows_synced", {}),
+                feature_flag_requests=usage_summary.get("feature_flag_requests", {}),
                 period=[
                     data["billing_period"]["current_period_start"],
                     data["billing_period"]["current_period_end"],
@@ -309,7 +310,7 @@ class BillingManager:
 
             if set_org_usage_summary(organization, new_usage=usage_info):
                 org_modified = True
-                sync_org_quota_limits(organization)
+                update_org_billing_quotas(organization)
 
         available_product_features = data.get("available_product_features", None)
         if available_product_features and available_product_features != organization.available_product_features:

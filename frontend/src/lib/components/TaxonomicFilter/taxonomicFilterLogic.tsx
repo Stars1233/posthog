@@ -4,6 +4,7 @@ import { combineUrl } from 'kea-router'
 import { infiniteListLogic } from 'lib/components/TaxonomicFilter/infiniteListLogic'
 import { infiniteListLogicType } from 'lib/components/TaxonomicFilter/infiniteListLogicType'
 import {
+    DataWarehousePopoverField,
     ListStorage,
     SimpleOption,
     TaxonomicFilterGroup,
@@ -24,7 +25,6 @@ import { ReplayTaxonomicFilters } from 'scenes/session-recordings/filters/Replay
 import { teamLogic } from 'scenes/teamLogic'
 
 import { actionsModel } from '~/models/actionsModel'
-import { cohortsModel } from '~/models/cohortsModel'
 import { dashboardsModel } from '~/models/dashboardsModel'
 import { groupPropertiesModel } from '~/models/groupPropertiesModel'
 import { groupsModel } from '~/models/groupsModel'
@@ -70,6 +70,23 @@ export const propertyTaxonomicGroupProps = (
     },
     getIcon: getPropertyDefinitionIcon,
 })
+
+export const defaultDataWarehousePopoverFields: DataWarehousePopoverField[] = [
+    {
+        key: 'id_field',
+        label: 'ID Field',
+    },
+    {
+        key: 'timestamp_field',
+        label: 'Timestamp Field',
+        allowHogQL: true,
+    },
+    {
+        key: 'distinct_id_field',
+        label: 'Distinct ID Field',
+        allowHogQL: true,
+    },
+]
 
 export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
     props({} as TaxonomicFilterLogicProps),
@@ -145,6 +162,10 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
         ],
         eventNames: [() => [(_, props) => props.eventNames], (eventNames) => eventNames ?? []],
         schemaColumns: [() => [(_, props) => props.schemaColumns], (schemaColumns) => schemaColumns ?? []],
+        dataWarehousePopoverFields: [
+            () => [(_, props) => props.dataWarehousePopoverFields],
+            (dataWarehousePopoverFields) => dataWarehousePopoverFields ?? {},
+        ],
         metadataSource: [
             () => [(_, props) => props.metadataSource],
             (metadataSource): AnyDataNode =>
@@ -368,8 +389,8 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
                         name: 'Cohorts',
                         searchPlaceholder: 'cohorts',
                         type: TaxonomicFilterGroupType.CohortsWithAllUsers,
-                        logic: cohortsModel,
-                        value: 'cohortsWithAllUsers',
+                        endpoint: combineUrl(`api/projects/${projectId}/cohorts/`).url,
+                        options: [{ id: 'all', name: 'All Users*' }],
                         getName: (cohort: CohortType) => cohort.name || `Cohort ${cohort.id}`,
                         getValue: (cohort: CohortType) => cohort.id,
                         getPopoverHeader: () => `All Users`,
@@ -488,11 +509,11 @@ export const taxonomicFilterLogic = kea<taxonomicFilterLogicType>([
                         getIcon: getPropertyDefinitionIcon,
                     },
                     {
-                        name: 'HogQL expression',
+                        name: 'SQL expression',
                         searchPlaceholder: null,
                         type: TaxonomicFilterGroupType.HogQLExpression,
                         render: InlineHogQLEditor,
-                        getPopoverHeader: () => 'HogQL expression',
+                        getPopoverHeader: () => 'SQL expression',
                         componentProps: { metadataSource },
                     },
                     {
