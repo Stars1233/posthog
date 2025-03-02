@@ -10,12 +10,15 @@ import { Schemas } from 'scenes/data-warehouse/settings/source/Schemas'
 import { SourceConfiguration } from 'scenes/data-warehouse/settings/source/SourceConfiguration'
 import { Syncs } from 'scenes/data-warehouse/settings/source/Syncs'
 import { PipelineNodeLogs } from 'scenes/pipeline/PipelineNodeLogs'
+import { SelfManaged } from 'scenes/pipeline/sources/SelfManaged'
 import { SceneExport } from 'scenes/sceneTypes'
 import { urls } from 'scenes/urls'
 
 import { ActivityScope, PipelineNodeTab, PipelineStage, PipelineTab } from '~/types'
 
+import { BatchExportBackfills } from './BatchExportBackfills'
 import { BatchExportRuns } from './BatchExportRuns'
+import { HogFunctionLogs } from './hogfunctions/logs/HogFunctionLogs'
 import { AppMetricsV2 } from './metrics/AppMetricsV2'
 import { PipelineNodeConfiguration } from './PipelineNodeConfiguration'
 import { pipelineNodeLogic, PipelineNodeLogicProps } from './pipelineNodeLogic'
@@ -69,7 +72,8 @@ export function PipelineNode(params: { stage?: string; id?: string } = {}): JSX.
                       ? { [PipelineNodeTab.SourceConfiguration]: <SourceConfiguration id={node.id} /> }
                       : {}),
               }
-            : {
+            : node.backend !== PipelineBackend.SelfManagedSource
+            ? {
                   [PipelineNodeTab.Configuration]: <PipelineNodeConfiguration />,
                   [PipelineNodeTab.Metrics]:
                       node.backend === PipelineBackend.HogFunction ? (
@@ -77,11 +81,22 @@ export function PipelineNode(params: { stage?: string; id?: string } = {}): JSX.
                       ) : (
                           <PipelineNodeMetrics id={id} />
                       ),
-                  [PipelineNodeTab.Logs]: <PipelineNodeLogs id={id} stage={stage} />,
+                  [PipelineNodeTab.Logs]:
+                      node.backend === PipelineBackend.HogFunction ? (
+                          <HogFunctionLogs hogFunctionId={id.toString().substring(4)} />
+                      ) : (
+                          <PipelineNodeLogs id={id} stage={stage} />
+                      ),
               }
+            : {}
 
     if (node.backend === PipelineBackend.BatchExport) {
         tabToContent[PipelineNodeTab.Runs] = <BatchExportRuns id={node.id} />
+        tabToContent[PipelineNodeTab.Backfills] = <BatchExportBackfills id={node.id} />
+    }
+
+    if (node.backend === PipelineBackend.SelfManagedSource) {
+        tabToContent[PipelineNodeTab.SourceConfiguration] = <SelfManaged id={node.id.toString()} />
     }
 
     if (node.backend === PipelineBackend.Plugin) {

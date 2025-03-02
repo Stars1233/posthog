@@ -89,14 +89,8 @@ describe('server', () => {
             {},
             {
                 http: true,
-                pluginScheduledTasks: true,
-                processPluginJobs: true,
-                processAsyncOnEventHandlers: true,
-                processAsyncWebhooksHandlers: true,
                 cdpProcessedEvents: true,
-                cdpFunctionCallbacks: true,
                 cdpCyclotronWorker: true,
-                syncInlinePlugins: true,
             }
         )
     })
