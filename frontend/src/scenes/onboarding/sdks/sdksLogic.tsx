@@ -5,6 +5,7 @@ import api from 'lib/api'
 import { FEATURE_FLAGS } from 'lib/constants'
 import { LemonSelectOptions } from 'lib/lemon-ui/LemonSelect/LemonSelect'
 import { featureFlagLogic } from 'lib/logic/featureFlagLogic'
+import { eventUsageLogic } from 'lib/utils/eventUsageLogic'
 import { liveEventsTableLogic } from 'scenes/activity/live/liveEventsTableLogic'
 import { userLogic } from 'scenes/userLogic'
 
@@ -63,6 +64,7 @@ export const sdksLogic = kea<sdksLogicType>([
             userLogic,
             ['user', 'isUserNonTechnical'],
         ],
+        actions: [eventUsageLogic, ['reportSDKSelected']],
     }),
     actions({
         setSourceFilter: (sourceFilter: string | null) => ({ sourceFilter }),
@@ -76,6 +78,7 @@ export const sdksLogic = kea<sdksLogicType>([
         setPanel: (panel: 'instructions' | 'options') => ({ panel }),
         setHasSnippetEvents: (hasSnippetEvents: boolean) => ({ hasSnippetEvents }),
         setSnippetHosts: (snippetHosts: string[]) => ({ snippetHosts }),
+        selectSDK: (sdk: SDK) => ({ sdk }),
     }),
     reducers({
         sourceFilter: [
@@ -141,9 +144,10 @@ export const sdksLogic = kea<sdksLogicType>([
         ],
         combinedSnippetAndLiveEventsHosts: [
             (selectors) => [selectors.snippetHosts, selectors.eventHosts],
-            (snippetHosts: string[], eventHosts: string[]): string[] => {
+            // if the connected kea hasn't mounted for some reason, eventHosts can be undefined
+            (snippetHosts: string[], eventHosts?: string[]): string[] => {
                 const combinedSnippetAndLiveEventsHosts = snippetHosts
-                for (const host of eventHosts) {
+                for (const host of eventHosts ?? []) {
                     const hostProtocol = new URL(host).protocol
                     const currentProtocol = window.location.protocol
                     if (hostProtocol === currentProtocol && !combinedSnippetAndLiveEventsHosts.includes(host)) {
@@ -248,6 +252,10 @@ export const sdksLogic = kea<sdksLogicType>([
             if (values.showSideBySide && !values.selectedSDK) {
                 actions.setSelectedSDK(values.sdks?.[0] || null)
             }
+        },
+        selectSDK: ({ sdk }) => {
+            actions.setSelectedSDK(sdk)
+            actions.reportSDKSelected(sdk)
         },
     })),
     events(({ actions }) => ({
