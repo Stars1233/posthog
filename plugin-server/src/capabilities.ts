@@ -11,55 +11,30 @@ export function getPluginServerCapabilities(config: PluginsServerConfig): Plugin
         case null:
             return {
                 mmdb: true,
-                ingestion: true,
-                ingestionOverflow: true,
-                ingestionHistorical: true,
-                eventsIngestionPipelines: true, // with null PluginServerMode we run all of them
-                pluginScheduledTasks: true,
-                processPluginJobs: true,
+                ingestionV2Combined: true,
                 processAsyncOnEventHandlers: true,
                 processAsyncWebhooksHandlers: true,
                 sessionRecordingBlobIngestion: true,
                 sessionRecordingBlobOverflowIngestion: config.SESSION_RECORDING_OVERFLOW_ENABLED,
+                sessionRecordingBlobIngestionV2: true,
+                sessionRecordingBlobIngestionV2Overflow: config.SESSION_RECORDING_OVERFLOW_ENABLED,
                 appManagementSingleton: true,
                 preflightSchedules: true,
                 cdpProcessedEvents: true,
                 cdpInternalEvents: true,
-                cdpFunctionCallbacks: true,
                 cdpCyclotronWorker: true,
+                cdpCyclotronWorkerPlugins: true,
+                cdpApi: true,
                 syncInlinePlugins: true,
                 ...sharedCapabilities,
             }
-        case PluginServerMode.ingestion:
+
+        case PluginServerMode.ingestion_v2:
             // NOTE: this mode will be removed in the future and replaced with
             // `analytics-ingestion` and `recordings-ingestion` modes.
             return {
                 mmdb: true,
-                ingestion: true,
-                ...sharedCapabilities,
-            }
-        case PluginServerMode.ingestion_overflow:
-            return {
-                mmdb: true,
-                ingestionOverflow: true,
-                ...sharedCapabilities,
-            }
-        case PluginServerMode.ingestion_historical:
-            return {
-                mmdb: true,
-                ingestionHistorical: true,
-                ...sharedCapabilities,
-            }
-        case PluginServerMode.events_ingestion:
-            return {
-                mmdb: true,
-                eventsIngestionPipelines: true,
-                ...sharedCapabilities,
-            }
-        case PluginServerMode.analytics_ingestion:
-            return {
-                mmdb: true,
-                ingestion: true,
+                ingestionV2: true,
                 ...sharedCapabilities,
             }
         case PluginServerMode.recordings_blob_ingestion:
@@ -72,6 +47,17 @@ export function getPluginServerCapabilities(config: PluginsServerConfig): Plugin
                 sessionRecordingBlobOverflowIngestion: true,
                 ...sharedCapabilities,
             }
+        case PluginServerMode.recordings_blob_ingestion_v2:
+            return {
+                sessionRecordingBlobIngestionV2: true,
+                ...sharedCapabilities,
+            }
+        case PluginServerMode.recordings_blob_ingestion_v2_overflow:
+            return {
+                sessionRecordingBlobIngestionV2Overflow: true,
+                ...sharedCapabilities,
+            }
+
         case PluginServerMode.async_onevent:
             return {
                 processAsyncOnEventHandlers: true,
@@ -80,18 +66,6 @@ export function getPluginServerCapabilities(config: PluginsServerConfig): Plugin
         case PluginServerMode.async_webhooks:
             return {
                 processAsyncWebhooksHandlers: true,
-                ...sharedCapabilities,
-            }
-        case PluginServerMode.jobs:
-            return {
-                processPluginJobs: true,
-                ...sharedCapabilities,
-            }
-        case PluginServerMode.scheduler:
-            return {
-                pluginScheduledTasks: true,
-                appManagementSingleton: true,
-                syncInlinePlugins: true,
                 ...sharedCapabilities,
             }
         case PluginServerMode.cdp_processed_events:
@@ -104,14 +78,22 @@ export function getPluginServerCapabilities(config: PluginsServerConfig): Plugin
                 cdpInternalEvents: true,
                 ...sharedCapabilities,
             }
-        case PluginServerMode.cdp_function_callbacks:
-            return {
-                cdpFunctionCallbacks: true,
-                ...sharedCapabilities,
-            }
         case PluginServerMode.cdp_cyclotron_worker:
             return {
                 cdpCyclotronWorker: true,
+                ...sharedCapabilities,
+            }
+        case PluginServerMode.cdp_cyclotron_worker_plugins:
+            return {
+                cdpCyclotronWorkerPlugins: true,
+                ...sharedCapabilities,
+            }
+        case PluginServerMode.cdp_api:
+            return {
+                cdpApi: true,
+                mmdb: true,
+                // NOTE: This is temporary until we have removed plugins
+                appManagementSingleton: true,
                 ...sharedCapabilities,
             }
         // This is only for functional tests, which time out if all capabilities are used
@@ -119,11 +101,7 @@ export function getPluginServerCapabilities(config: PluginsServerConfig): Plugin
         case PluginServerMode.functional_tests:
             return {
                 mmdb: true,
-                ingestion: true,
-                ingestionHistorical: true,
-                eventsIngestionPipelines: true,
-                pluginScheduledTasks: true,
-                processPluginJobs: true,
+                ingestionV2Combined: true,
                 processAsyncOnEventHandlers: true,
                 processAsyncWebhooksHandlers: true,
                 sessionRecordingBlobIngestion: true,

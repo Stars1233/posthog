@@ -119,6 +119,7 @@ export function PersonsModal({
     return (
         <>
             <LemonModal
+                data-attr="persons-modal"
                 title={null}
                 isOpen={isModalOpen}
                 onClose={closeModal}
@@ -162,38 +163,38 @@ export function PersonsModal({
 
                     {query &&
                         cleanedInsightActorsQueryOptions(insightActorsQueryOptions, query).map(([key, options]) =>
-                            key === 'breakdowns' ? (
-                                options.map(({ values }, index) => (
-                                    <div key={`${key}_${index}`}>
-                                        <LemonSelect
-                                            fullWidth
-                                            className="mb-2"
-                                            value={query?.breakdown?.[index] ?? null}
-                                            onChange={(v) => {
-                                                const breakdown = Array.isArray(query.breakdown)
-                                                    ? [...query.breakdown]
-                                                    : []
-                                                breakdown[index] = v
-                                                updateActorsQuery({ breakdown })
-                                            }}
-                                            options={values}
-                                        />
-                                    </div>
-                                ))
-                            ) : (
-                                <div key={key}>
-                                    <LemonSelect
-                                        fullWidth
-                                        className="mb-2"
-                                        value={query?.[key] ?? null}
-                                        onChange={(v) => updateActorsQuery({ [key]: v })}
-                                        options={options}
-                                    />
-                                </div>
-                            )
+                            key === 'breakdowns'
+                                ? options.map(({ values }, index) => (
+                                      <div key={`${key}_${index}`}>
+                                          <LemonSelect
+                                              fullWidth
+                                              className="mb-2"
+                                              value={query?.breakdown?.[index] ?? null}
+                                              onChange={(v) => {
+                                                  const breakdown = Array.isArray(query.breakdown)
+                                                      ? [...query.breakdown]
+                                                      : []
+                                                  breakdown[index] = v
+                                                  updateActorsQuery({ breakdown })
+                                              }}
+                                              options={values}
+                                          />
+                                      </div>
+                                  ))
+                                : options.length > 1 && (
+                                      <div key={key}>
+                                          <LemonSelect
+                                              fullWidth
+                                              className="mb-2"
+                                              value={query?.[key] ?? null}
+                                              onChange={(v) => updateActorsQuery({ [key]: v })}
+                                              options={options}
+                                          />
+                                      </div>
+                                  )
                         )}
 
-                    <div className="flex items-center gap-2 text-muted">
+                    <div className="flex items-center gap-2 text-secondary">
                         {actorsResponseLoading ? (
                             <>
                                 <Spinner />
@@ -211,7 +212,7 @@ export function PersonsModal({
                     </div>
                 </div>
                 <div className="px-4 overflow-hidden flex flex-col">
-                    <div className="relative min-h-20 p-2 space-y-2 rounded bg-border-light overflow-y-auto mb-2">
+                    <div className="relative min-h-20 p-2 deprecated-space-y-2 rounded bg-border-light overflow-y-auto mb-2">
                         {errorObject ? (
                             validationError ? (
                                 <InsightValidationError query={query} detail={validationError} />
@@ -236,12 +237,12 @@ export function PersonsModal({
                                 ))}
                             </>
                         ) : actorsResponseLoading ? (
-                            <div className="space-y-3">
+                            <div className="deprecated-space-y-3">
                                 <LemonSkeleton active={false} className="h-4 w-full" />
                                 <LemonSkeleton active={false} className="h-4 w-3/5" />
                             </div>
                         ) : (
-                            <div className="text-center p-5">
+                            <div className="text-center p-5" data-attr="persons-modal-no-matches">
                                 We couldn't find any matching {actorLabel.plural} for this data point.
                             </div>
                         )}
@@ -348,7 +349,7 @@ export function ActorRow({ actor, onOpenRecording, propertiesTimelineFilter }: A
     const matchedRecordings = actor.matched_recordings || []
 
     return (
-        <div className="relative border rounded bg-bg-light">
+        <div className="relative border rounded bg-surface-primary">
             <div className="flex items-center gap-2 p-2">
                 <LemonButton
                     noPadding
@@ -374,9 +375,9 @@ export function ActorRow({ actor, onOpenRecording, propertiesTimelineFilter }: A
                             {actor.distinct_ids?.[0] && (
                                 <CopyToClipboardInline
                                     explicitValue={actor.distinct_ids[0]}
-                                    iconStyle={{ color: 'var(--primary)' }}
+                                    iconStyle={{ color: 'var(--accent-primary)' }}
                                     iconPosition="end"
-                                    className="text-xs text-muted-alt"
+                                    className="text-xs text-secondary"
                                 >
                                     {midEllipsis(actor.distinct_ids[0], 32)}
                                 </CopyToClipboardInline>
@@ -401,7 +402,7 @@ export function ActorRow({ actor, onOpenRecording, propertiesTimelineFilter }: A
             </div>
 
             {expanded ? (
-                <div className="PersonsModal__tabs bg-bg-3000 border-t rounded-b">
+                <div className="PersonsModal__tabs bg-primary border-t rounded-b">
                     <LemonTabs
                         activeKey={tab}
                         onChange={setTab}
@@ -422,11 +423,11 @@ export function ActorRow({ actor, onOpenRecording, propertiesTimelineFilter }: A
                                 key: 'recordings',
                                 label: 'Recordings',
                                 content: (
-                                    <div className="p-2 space-y-2 font-medium mt-1">
+                                    <div className="p-2 deprecated-space-y-2 font-medium mt-1">
                                         <div className="flex justify-between items-center px-2">
                                             <span>{pluralize(matchedRecordings.length, 'matched recording')}</span>
                                         </div>
-                                        <ul className="space-y-px">
+                                        <ul className="deprecated-space-y-px">
                                             {matchedRecordings?.length
                                                 ? matchedRecordings.map((recording, i) => (
                                                       <React.Fragment key={i}>
@@ -449,7 +450,7 @@ export function ActorRow({ actor, onOpenRecording, propertiesTimelineFilter }: A
                                                               >
                                                                   <div className="flex flex-1 justify-between gap-2 items-center">
                                                                       <span>View recording {i + 1}</span>
-                                                                      <IconPlayCircle className="text-xl text-muted" />
+                                                                      <IconPlayCircle className="text-xl text-secondary" />
                                                                   </div>
                                                               </LemonButton>
                                                           </li>
@@ -488,8 +489,9 @@ export function MissingPersonsAlert({
 }): JSX.Element {
     return (
         <LemonBanner type="info" className="mb-2">
-            {missingActorsCount} {missingActorsCount > 1 ? `${actorLabel.plural} are` : `${actorLabel.singular} is`} not
-            shown because they've been merged with those listed, or deleted.{' '}
+            {missingActorsCount}{' '}
+            <span>{missingActorsCount > 1 ? `${actorLabel.plural} are` : `${actorLabel.singular} is`}</span> not shown
+            because they've been merged with those listed, or deleted.{' '}
             <Link to="https://posthog.com/docs/how-posthog-works/queries#insights-counting-unique-persons">
                 Learn more.
             </Link>
